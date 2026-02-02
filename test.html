@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeVine AI - Embedding Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .button-group {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .vector-preview {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>DeVine AI - Embedding Test</h1>
+
+    <div class="info">
+        서버 실행: <code>uvicorn app.main:app --reload</code><br>
+        기본 주소: <code>http://localhost:8000</code>
+    </div>
+
+    <div class="container">
+        <label for="endpoint">API Endpoint</label>
+        <input type="text" id="endpoint" value="http://localhost:8000/embed"
+               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
+
+        <label for="report">Report JSON</label>
+        <textarea id="report" placeholder="리포트 JSON을 입력하세요..."></textarea>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="sendRequest()" id="sendBtn">임베딩 생성</button>
+            <button class="btn-secondary" onclick="loadSample()">샘플 데이터 로드</button>
+            <button class="btn-secondary" onclick="clearAll()">초기화</button>
+        </div>
+    </div>
+
+    <div class="container result" id="resultContainer" style="display: none;">
+        <div class="result-header">
+            <label>Result</label>
+            <span class="status" id="status"></span>
+        </div>
+        <div id="resultContent"></div>
+    </div>
+
+    <script>
+        const sampleReport = {
+            "overview": {
+                "summary": "이 프로젝트는 다양한 외부 음악 API(Last.fm, iTunes, Spotify, Billboard)와 연동하여 음악 정보를 제공하고, 사용자별 음악 보관함 및 AI 기반 추천 기능을 포함하는 백엔드 시스템입니다.",
+                "mainTech": "JavaScript 기반 Express.js 프레임워크를 활용한 백엔드 API 서버 개발",
+                "capabilities": [
+                    "JWT 기반 사용자 인증 및 권한 관리 시스템",
+                    "Last.fm, iTunes, Spotify, Billboard 등 다수의 외부 음악 API 연동",
+                    "Prisma ORM을 사용한 데이터베이스 모델링 및 관리"
+                ],
+                "scale": "약 8,625줄 코드 작성"
+            },
+            "projectInfo": {
+                "projectName": "UMC Archive Backend",
+                "techStack": [
+                    "JavaScript",
+                    "Express.js",
+                    "Prisma",
+                    "Axios",
+                    "OpenAI API",
+                    "AWS SDK (S3)"
+                ],
+                "scale": "8,625줄"
+            },
+            "keyImplementations": [
+                {
+                    "title": "외부 음악 서비스 API 통합 및 데이터 관리",
+                    "description": "Last.fm, iTunes, Spotify, Billboard와 같은 여러 외부 음악 API들을 통합하여 음악 정보를 검색하고 조회하는 기능을 구현했습니다."
+                },
+                {
+                    "title": "사용자 인증 및 권한 부여 시스템",
+                    "description": "JWT를 이용한 사용자 로그인, 회원가입, 이메일 인증 및 프로필 변경 기능을 구현했습니다."
+                },
+                {
+                    "title": "AI 기반 음악 추천 및 사용자 맞춤형 서비스",
+                    "description": "OpenAI GPT API를 활용하여 사용자 히스토리 및 선호 아티스트를 기반으로 추천 기능을 개발했습니다."
+                },
+                {
+                    "title": "표준화된 API 응답 및 커스텀 에러 처리",
+                    "description": "모든 API 응답을 일관된 JSON 형식으로 정의하고 커스텀 에러 클래스를 구현했습니다."
+                }
+            ],
+            "aiEvaluation": [
+                {
+                    "title": "빠른 구현과 다양한 기술 스택 활용 능력을 갖춘 백엔드 개발자",
+                    "details": [
+                        "짧은 개발 기간에도 다양한 핵심 기능을 구현하며 빠른 개발 속도를 보여주었습니다.",
+                        "계층형 아키텍처를 적용하여 코드의 가독성과 유지보수성을 높였습니다."
+                    ]
+                }
+            ],
+            "recommendations": [
+                "음악 스트리밍/큐레이션 서비스 백엔드 개발",
+                "콘텐츠 기반 추천 시스템 개발"
+            ]
+        };
+
+        function loadSample() {
+            document.getElementById('report').value = JSON.stringify(sampleReport, null, 2);
+        }
+
+        function clearAll() {
+            document.getElementById('report').value = '';
+            document.getElementById('resultContainer').style.display = 'none';
+        }
+
+        async function sendRequest() {
+            const endpoint = document.getElementById('endpoint').value;
+            const reportText = document.getElementById('report').value;
+            const sendBtn = document.getElementById('sendBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const status = document.getElementById('status');
+            const resultContent = document.getElementById('resultContent');
+
+            // Validate JSON
+            let report;
+            try {
+                report = JSON.parse(reportText);
+            } catch (e) {
+                resultContainer.style.display = 'block';
+                status.className = 'status error';
+                status.textContent = 'JSON 파싱 오류';
+                resultContent.innerHTML = `<pre>${e.message}</pre>`;
+                return;
+            }
+
+            // Show loading
+            sendBtn.disabled = true;
+            sendBtn.textContent = '처리 중...';
+            resultContainer.style.display = 'block';
+            status.className = 'status loading';
+            status.textContent = '요청 중...';
+            resultContent.innerHTML = '<pre>임베딩 생성 중...</pre>';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ report }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.className = 'status success';
+                    status.textContent = `성공 (${response.status})`;
+
+                    const vectorPreview = data.vector.slice(0, 10).map(v => v.toFixed(6)).join(', ');
+
+                    resultContent.innerHTML = `
+                        <p><strong>Dimension:</strong> ${data.dimension}</p>
+                        <p><strong>임베딩에 사용된 텍스트:</strong></p>
+                        <pre>${data.text}</pre>
+                        <p><strong>Vector Preview (처음 10개):</strong></p>
+                        <p class="vector-preview">[${vectorPreview}, ...]</p>
+                        <details>
+                            <summary style="cursor: pointer; color: #007bff;">전체 벡터 보기</summary>
+                            <pre style="font-size: 11px; max-height: 200px;">[${data.vector.map(v => v.toFixed(8)).join(',\n')}]</pre>
+                        </details>
+                    `;
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `오류 (${response.status})`;
+                    resultContent.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = '네트워크 오류';
+                resultContent.innerHTML = `<pre>${e.message}\n\n서버가 실행 중인지 확인하세요:\nuvicorn app.main:app --reload</pre>`;
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '임베딩 생성';
+            }
+        }
+
+        // Load sample on page load
+        loadSample();
+    </script>
+</body>
+</html>
